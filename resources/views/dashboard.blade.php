@@ -1,8 +1,7 @@
 <x-excel-importer::layout>
-    <div class="ei-card" style="margin-bottom: 16px;">
-        <h2 class="ei-title">Excel Importer</h2>
-        <p class="ei-subtitle">Use this dashboard to upload, preview, and manage imports.</p>
-        <div class="ei-muted">Route: <strong>{{ route('excel-importer.dashboard') }}</strong></div>
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold text-gray-900">Excel Import</h1>
+        <p class="mt-2 text-gray-600">Upload, preview, and import Excel/CSV files with progress tracking and error handling.</p>
     </div>
 
     <livewire:excel-importer :type="$type ?? null" />
