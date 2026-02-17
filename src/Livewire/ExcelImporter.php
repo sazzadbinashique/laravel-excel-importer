@@ -181,6 +181,27 @@ class ExcelImporter extends Component
         return Storage::disk($disk)->download($this->import->error_path, $filename);
     }
 
+    public function downloadErrorFile(int $importId)
+    {
+        $import = Import::find($importId);
+
+        if (!$import || !$import->error_path) {
+            $this->addError('file', 'Error file not found.');
+            return;
+        }
+
+        $disk = $this->getStorageDisk();
+
+        if (!Storage::disk($disk)->exists($import->error_path)) {
+            $this->addError('file', 'Error file not found in storage.');
+            return;
+        }
+
+        $filename = 'import_errors_'.$import->id.'.xlsx';
+
+        return Storage::disk($disk)->download($import->error_path, $filename);
+    }
+
     public function clearImport(): void
     {
         if (!$this->import) {

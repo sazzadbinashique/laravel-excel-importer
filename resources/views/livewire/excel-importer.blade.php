@@ -207,6 +207,7 @@
                             <th class="px-4 py-3 text-left font-medium text-gray-900">Status</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-900">Processed</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-900">Failed</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-900">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
@@ -232,6 +233,18 @@
                                         <span class="text-red-600 font-medium">{{ $recent->failed_rows }}</span>
                                     @else
                                         <span class="text-gray-600">{{ $recent->failed_rows }}</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3">
+                                    @if($recent->error_path && $recent->failed_rows > 0)
+                                        <button type="button" wire:click="downloadErrorFile({{ $recent->id }})" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition border border-red-200">
+                                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                            Errors
+                                        </button>
+                                    @else
+                                        <span class="text-gray-400 text-xs">—</span>
                                     @endif
                                 </td>
                             </tr>
