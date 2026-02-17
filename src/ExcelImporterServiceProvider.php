@@ -31,6 +31,9 @@ class ExcelImporterServiceProvider extends ServiceProvider
         // Load views
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'excel-importer');
 
+        // Load routes
+        $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+
         // Register Livewire component
         Livewire::component('excel-importer', \SazzadBinAshique\LaravelExcelImporter\Livewire\ExcelImporter::class);
 

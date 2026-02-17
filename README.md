@@ -1,131 +1,64 @@
-# Laravel Excel Importer Package - Multi-Model System
+# Laravel Excel Importer
 
 [![Latest Version](https://img.shields.io/packagist/v/sazzadbinashique/laravel-excel-importer.svg?style=flat-square)](https://packagist.org/packages/sazzadbinashique/laravel-excel-importer)
 [![Total Downloads](https://img.shields.io/packagist/dt/sazzadbinashique/laravel-excel-importer.svg?style=flat-square)](https://packagist.org/packages/sazzadbinashique/laravel-excel-importer)
 [![License](https://img.shields.io/packagist/l/sazzadbinashique/laravel-excel-importer.svg?style=flat-square)](https://packagist.org/packages/sazzadbinashique/laravel-excel-importer)
 
-A powerful Laravel package for importing **any model** from Excel files with preview, real-time progress tracking, validation, error handling, and automatic cleanup.
-
-**Author:** Sazzad Bin Ashique  
-**Email:** sazzad.sumon35@gmail.com
-
-## Features
-
-✅ **Multiple Model Types** - Import any model (Users, Products, or custom)  
-✅ **File Upload with Preview** - Preview data before importing  
-✅ **Real-time Progress Tracking** - Live updates with Livewire polling  
-✅ **Validation** - Built-in validation with detailed error reporting  
-✅ **Error Export** - Download Excel files with validation errors  
-✅ **Queue Processing** - Background job processing for large files  
-✅ **Automatic Cleanup** - Scheduled cleanup of old files  
-✅ **Extensible** - Easy to add custom import types  
-✅ **Customizable** - Highly configurable via config file  
-✅ **Modern UI** - Clean, responsive interface with Tailwind CSS  
+Import any Laravel model from Excel/CSV with preview, progress tracking, validation errors, and a built-in dashboard.
 
 ## Requirements
 
-- PHP 8.2 or higher
-- Laravel 11.0 or higher
-- Livewire 3.0 or higher
-- Maatwebsite/Laravel-Excel 3.1 or higher
+- PHP 8.2+
+- Laravel 11+
+- Livewire 3+
+- maatwebsite/excel 3.1+
 
 ## Installation
-
-### Step 1: Install via Composer
 
 ```bash
 composer require sazzadbinashique/laravel-excel-importer
 ```
 
-### Step 2: Publish Assets
+Publish package assets:
 
 ```bash
-# Publish all assets
 php artisan vendor:publish --provider="SazzadBinAshique\LaravelExcelImporter\ExcelImporterServiceProvider"
-
-# Or publish individually
-php artisan vendor:publish --tag=excel-importer-config
-php artisan vendor:publish --tag=excel-importer-migrations
-php artisan vendor:publish --tag=excel-importer-views
-php artisan vendor:publish --tag=excel-importer-assets
 ```
 
-### Step 3: Run Migrations
+Run migrations:
 
 ```bash
 php artisan migrate
 ```
 
-This creates the `imports` table for tracking import jobs.
+## Dashboard (Built-In)
 
-### Step 4: Configure Queue
+The package registers a ready-to-use dashboard route (protected by `auth` by default):
 
-Make sure your queue is configured and running:
+- `/excel-importer` (name: `excel-importer.dashboard`)
+- `/excel-importer/{type}` (name: `excel-importer.dashboard.type`)
 
-**.env**
-```env
-QUEUE_CONNECTION=database
-```
-
-**Start the queue worker:**
-```bash
-php artisan queue:work
-```
-
-### Step 5: Set Up Scheduler (Optional)
-
-For automatic file cleanup, add the scheduler to your crontab:
-
-```bash
-* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
-```
-
-Or on Windows, use Task Scheduler to run:
-```bash
-php artisan schedule:run
-```
-
-## Usage
-
-### Basic Usage
-
-**In your Blade view:**
+Add a button anywhere in your app:
 
 ```blade
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Import Users</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    @livewireStyles
-</head>
-<body>
-    <div class="container mx-auto py-8">
-        <h1 class="text-2xl font-bold mb-6">Import Users</h1>
-        
-        @livewire('excel-importer')
-    </div>
-    
-    @livewireScripts
-</body>
-</html>
+<a href="{{ route('excel-importer.dashboard') }}">Open Import Dashboard</a>
 ```
 
-**Add route (routes/web.php):**
+## Configure Import Types
+
+Define your import types in the published config:
 
 ```php
-use Illuminate\Support\Facades\Route;
-
-Route::get('/import', function () {
-    return view('import');
-})->name('import.index');
+// config/excel-importer.php
+'import_types' => [
+    'users' => \App\Imports\UsersImport::class,
+    'products' => \App\Imports\ProductsImport::class,
+],
 ```
 
-### Custom Import Class
+## Create an Import Class
 
-Create your own import class extending the base functionality:
-
-**app/Imports/UsersImport.php**
+Extend the base import to get validation, batching, and progress updates:
 
 ```php
 <?php
@@ -133,46 +66,22 @@ Create your own import class extending the base functionality:
 namespace App\Imports;
 
 use App\Models\User;
-use App\Models\Import;
-use Maatwebsite\Excel\Concerns\ToModel;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithValidation;
-use Maatwebsite\Excel\Concerns\WithBatchInserts;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
-use Maatwebsite\Excel\Concerns\SkipsOnError;
-use Maatwebsite\Excel\Concerns\SkipsErrors;
-use Maatwebsite\Excel\Concerns\SkipsOnFailure;
-use Maatwebsite\Excel\Concerns\SkipsFailures;
-use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Events\AfterBatch;
+use SazzadBinAshique\LaravelExcelImporter\Imports\BaseImport;
+use SazzadBinAshique\LaravelExcelImporter\Models\Import;
 use Illuminate\Support\Facades\Hash;
 
-class UsersImport implements 
-    ToModel, 
-    WithHeadingRow, 
-    WithValidation, 
-    WithBatchInserts,
-    WithChunkReading,
-    SkipsOnError,
-    SkipsOnFailure,
-    WithEvents
+class UsersImport extends BaseImport
 {
-    use SkipsErrors, SkipsFailures;
-
-    protected $import;
-    protected $processedRows = 0;
-    protected $successfulRows = 0;
-
     public function __construct(Import $import)
     {
-        $this->import = $import;
+        parent::__construct($import);
     }
 
     public function model(array $row)
     {
         return new User([
-            'name'     => $row['name'],
-            'email'    => $row['email'],
+            'name' => $row['name'],
+            'email' => $row['email'],
             'password' => Hash::make($row['password'] ?? 'password'),
         ]);
     }
@@ -181,23 +90,71 @@ class UsersImport implements
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email', 'max:255'],
-            'password' => ['nullable', 'string', 'min:8'],
+            'email' => ['required', 'email', 'unique:users,email'],
         ];
     }
+}
+```
 
-    public function customValidationMessages()
-    {
-        return [
-            'name.required' => 'Name is required.',
-            'email.required' => 'Email is required.',
-            'email.email' => 'Email must be a valid email address.',
-            'email.unique' => 'Email already exists in the database.',
-            'password.min' => 'Password must be at least 8 characters.',
-        ];
-    }
+## Queue Setup
 
-    public function batchSize(): int
+The import job runs on the queue. Set your queue connection and run a worker:
+
+```env
+QUEUE_CONNECTION=database
+```
+
+```bash
+php artisan queue:work
+```
+
+## Cleanup Command
+
+Old imports and error files can be cleaned up automatically:
+
+```bash
+php artisan excel-importer:cleanup --days=7
+```
+
+Schedule it (optional):
+
+```php
+// app/Console/Kernel.php
+$schedule->command('excel-importer:cleanup')->dailyAt(config('excel-importer.cleanup_time'));
+```
+
+## Configuration
+
+Key settings in `config/excel-importer.php`:
+
+- `storage_disk` (default `local`)
+- `import_path` and `error_path`
+- `batch_size`, `chunk_size`, `preview_rows`
+- `route_prefix` and `middleware`
+- `recent_imports`
+
+## Testing the Package
+
+From the package root:
+
+```bash
+composer install
+vendor/bin/phpunit
+```
+
+Manual test inside a Laravel app:
+
+1. Publish config, migrations, and views.
+2. Add at least one import type in `config/excel-importer.php`.
+3. Run `php artisan migrate`.
+4. Start the queue worker: `php artisan queue:work`.
+5. Visit `route('excel-importer.dashboard')` and import a sample CSV.
+
+## Troubleshooting
+
+- If the dashboard route returns 404, ensure the package service provider is discovered.
+- If progress never updates, ensure the queue worker is running.
+- If files are missing, check the configured `storage_disk` and `import_path`.
     {
         return config('excel-importer.batch_size', 100);
     }
